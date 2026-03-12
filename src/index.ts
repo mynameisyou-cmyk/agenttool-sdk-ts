@@ -27,7 +27,9 @@ export type {
   SearchResult,
   StoreOptions,
   UsageStats,
+  VerifyEvidence,
   VerifyResult,
+  VerifySource,
   Wallet,
   WalletPolicy,
 } from "./types.js";
