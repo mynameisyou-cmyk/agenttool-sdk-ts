@@ -89,13 +89,29 @@ export interface ExecuteResult {
   duration_ms: number;
 }
 
+/** A single source returned by agent-verify. */
+export interface VerifySource {
+  url: string;
+  title: string;
+  date?: string;
+  reliability: number;
+}
+
+/** Evidence grouped by position. */
+export interface VerifyEvidence {
+  supporting: Array<{ url: string; title: string; snippet: string; reliability: number }>;
+  contradicting: Array<{ url: string; title: string; snippet: string; reliability: number }>;
+  neutral: Array<{ url: string; title: string; snippet: string; reliability: number }>;
+}
+
 /** Result of a verification request. */
 export interface VerifyResult {
-  verdict: string;
+  verdict: "verified" | "false" | "disputed" | "unverifiable";
   confidence: number;
-  sources: string[];
-  evidence: string;
+  sources: VerifySource[];
+  evidence: VerifyEvidence;
   caveats: string[];
+  processingMs?: number;
 }
 
 /** A wallet object. */
