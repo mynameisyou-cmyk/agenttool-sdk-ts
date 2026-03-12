@@ -1,10 +1,11 @@
 # @agenttool/sdk · TypeScript
 
-> Persistent memory, verified actions, and tool access for AI agents — one API key.
+> Persistent memory, reasoning traces, fact verification, tool access, and agent-to-agent payments — one API key.
 
 [![npm](https://img.shields.io/npm/v/@agenttool/sdk)](https://www.npmjs.com/package/@agenttool/sdk)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![API Status](https://img.shields.io/badge/API-live-brightgreen)](https://api.agenttool.dev/health)
 
 ```bash
 npm install @agenttool/sdk
@@ -19,11 +20,12 @@ AgentTool gives AI agents the infrastructure they need to operate reliably:
 | Service | What it does |
 |---------|-------------|
 | **agent-memory** | Persistent semantic memory — store facts, retrieve by similarity |
-| **agent-tools** | Web search, page scraping, code execution |
-| **agent-verify** | SHA-256 proof-of-work attestations with timestamps |
-| **agent-economy** | Wallets, credits, agent-to-agent billing |
+| **agent-tools** | Web search, page scraping, sandboxed code execution |
+| **agent-verify** | Fact-check claims with AI-powered evidence gathering |
+| **agent-economy** | Wallets, spending policies, escrow, agent-to-agent payments |
+| **agent-trace** | Reasoning provenance — log and search decision traces |
 
-All four services, one API key, one SDK.
+All five services, one API key, one SDK.
 
 ## Quick start (60 seconds)
 
@@ -53,8 +55,8 @@ const results = await at.memory.search({
   limit: 5,
 });
 
-for (const result of results) {
-  console.log(`${result.score.toFixed(2)}  ${result.content}`);
+for (const r of results) {
+  console.log(`${r.score.toFixed(2)}  ${r.content}`);
 }
 ```
 
@@ -63,78 +65,117 @@ for (const result of results) {
 ### Memory
 
 ```typescript
-import { AgentTool } from "@agenttool/sdk";
-
 const at = new AgentTool({ apiKey: "at_..." }); // or use AT_API_KEY env var
 
 // Store
-const mem = await at.memory.store({
-  content: "User is based in London, timezone Europe/London",
-});
+const mem = await at.memory.store({ content: "User is in London, timezone Europe/London" });
 
-// Search (semantic)
-const results = await at.memory.search({ query: "where is the user?" });
+// Semantic search
+const results = await at.memory.search({ query: "where is the user?", limit: 5 });
 
 // Retrieve by ID
-const mem2 = await at.memory.get("mem_...");
+const mem = await at.memory.get("mem_abc123");
 
-// Delete
-await at.memory.delete("mem_...");
+// Usage stats
+const stats = await at.memory.usage();
+console.log(stats.memoriesStored, stats.searchesPerformed);
 ```
 
 ### Tools
 
 ```typescript
 // Web search
-const results = await at.tools.search({ query: "latest papers on RAG", numResults: 5 });
-for (const r of results) {
-  console.log(r.title, r.url);
-}
+const results = await at.tools.search("latest papers on RAG", { numResults: 5 });
+for (const r of results) console.log(r.title, r.url);
 
 // Scrape a page
-const page = await at.tools.scrape({ url: "https://example.com" });
-console.log(page.text);
+const page = await at.tools.scrape("https://example.com");
+console.log(page.content);      // page text/HTML
+console.log(page.statusCode);
 
-// Execute code
-const output = await at.tools.execute({ code: "console.log(Math.PI)" });
-console.log(output.stdout);
+// Execute code (sandboxed — Python, JavaScript, Bash)
+const result = await at.tools.execute("print(42)", { language: "python" });
+console.log(result.output);     // stdout
+console.log(result.error);      // stderr
+console.log(result.exitCode);   // 0 = success
 ```
 
 ### Verify
 
 ```typescript
-// Create an attestation
-const proof = await at.verify.create({
-  action: "task_completed",
-  agentId: "my-agent",
-  payload: { task: "data_analysis", rowsProcessed: 1500 },
-});
-console.log(proof.attestationId, proof.hash);
+// Fact-check a claim with AI-powered evidence gathering
+const result = await at.verify.check("The Eiffel Tower is 330 metres tall.");
+console.log(result.verdict);      // "verified" | "false" | "disputed" | "unverifiable"
+console.log(result.confidence);   // 0.0 – 1.0
+console.log(result.caveats);      // string[] of nuances
 
-// Verify an attestation
-const result = await at.verify.check("att_...");
-console.log(result.valid); // true
+// With domain hint for better evidence
+const r = await at.verify.check("Bitcoin was created in 2009.", {
+  domain: "finance",             // "finance" | "science" | "medical" | "legal" | "general"
+  context: "On the whitepaper publication date",
+});
 ```
 
-### Economy
+### Economy (wallets & escrows)
 
 ```typescript
 // Create a wallet
-const wallet = await at.economy.createWallet({ name: "agent-wallet" });
+const wallet = await at.economy.createWallet({ name: "agent-wallet", agentId: "agent-42" });
 
-// Check balance
-const { balance } = await at.economy.getBalance(wallet.id);
+// Fund it
+await at.economy.fundWallet(wallet.id, { amount: 500, description: "Weekly budget" });
 
-// Transfer credits
-await at.economy.transfer({
-  fromWallet: wallet.id,
-  toWallet: "wlt_...",
+// Spend credits
+await at.economy.spend(wallet.id, {
   amount: 10,
-  memo: "payment for search service",
+  counterparty: "wal_target_id",
+  description: "Payment for research task",
 });
+
+// Set a spending policy
+await at.economy.setPolicy(wallet.id, {
+  maxPerTransaction: 50,
+  maxPerHour: 200,
+  maxPerDay: 1000,
+});
+
+// Escrow: lock credits until work is done
+const escrow = await at.economy.createEscrow({
+  creatorWalletId: wallet.id,
+  amount: 100,
+  description: "Summarise 50 research papers",
+  deadline: "2026-03-14T12:00:00Z",
+});
+// Worker accepts:
+await at.economy.acceptEscrow(escrow.id, "wal_worker");
+// Release on completion:
+await at.economy.releaseEscrow(escrow.id);
 ```
 
-## Integration example — Vercel AI SDK
+### Traces (reasoning provenance)
+
+```typescript
+// Store a reasoning trace
+const trace = await at.traces.store({
+  step: "web_search",
+  input: { query: "climate change solutions" },
+  output: { results: ["..."] },
+});
+
+// Semantic search across traces
+const results = await at.traces.search({
+  query: "decisions about climate data",
+  limit: 5,
+});
+
+// Get a chain of reasoning steps
+const chain = await at.traces.chain("parent_trace_id");
+
+// Delete
+await at.traces.delete(trace.id);
+```
+
+## Integration example — LangChain / Vercel AI SDK
 
 ```typescript
 import { AgentTool } from "@agenttool/sdk";
@@ -143,46 +184,32 @@ import { z } from "zod";
 
 const at = new AgentTool();
 
-export const memoryTools = {
+const tools = {
   remember: tool({
     description: "Store a memory for later retrieval",
     parameters: z.object({ content: z.string() }),
     execute: async ({ content }) => {
-      const mem = await at.memory.store({ content, agentId: "vercel-ai-agent" });
-      return { id: mem.id, stored: true };
+      const mem = await at.memory.store({ content, agentId: "my-agent" });
+      return `Stored memory ${mem.id}`;
     },
   }),
   recall: tool({
     description: "Search past memories by semantic similarity",
     parameters: z.object({ query: z.string() }),
     execute: async ({ query }) => {
-      const results = await at.memory.search({ query, limit: 5 });
-      return results.map((r) => ({ content: r.content, score: r.score }));
+      const results = await at.memory.search({ query, limit: 3 });
+      return results.map((r) => r.content).join("\n");
+    },
+  }),
+  factCheck: tool({
+    description: "Verify whether a factual claim is true",
+    parameters: z.object({ claim: z.string() }),
+    execute: async ({ claim }) => {
+      const result = await at.verify.check(claim);
+      return `${result.verdict} (${(result.confidence * 100).toFixed(0)}% confidence)`;
     },
   }),
 };
-```
-
-## Integration example — any agent loop
-
-```typescript
-import { AgentTool } from "@agenttool/sdk";
-
-const at = new AgentTool();
-
-async function agentLoop(userMessage: string): Promise<string> {
-  // Recall relevant memories
-  const memories = await at.memory.search({ query: userMessage, limit: 5 });
-  const context = memories.map((m) => m.content).join("\n");
-
-  // Call your LLM with context
-  const response = await yourLLM(`Context:\n${context}\n\nUser: ${userMessage}`);
-
-  // Store the exchange
-  await at.memory.store({ content: `User: ${userMessage}\nAgent: ${response}` });
-
-  return response;
-}
 ```
 
 ## Free tier
@@ -192,6 +219,7 @@ async function agentLoop(userMessage: string): Promise<string> {
 | Memory ops/day | 100 | 10,000 | 100,000 |
 | Tool calls/day | 10 | 500 | 5,000 |
 | Verifications/day | 5 | 100 | 1,000 |
+| Traces/day | 100 | 10,000 | 100,000 |
 
 [Upgrade at app.agenttool.dev/billing](https://app.agenttool.dev/billing)
 
@@ -201,9 +229,9 @@ async function agentLoop(userMessage: string): Promise<string> {
 import { AgentTool } from "@agenttool/sdk";
 
 const at = new AgentTool({
-  apiKey: "at_...",                          // default: AT_API_KEY env var
-  baseUrl: "https://api.agenttool.dev",      // default
-  timeout: 30_000,                           // ms, default 30s
+  apiKey: "at_...",           // default: AT_API_KEY env var
+  baseUrl: "https://api.agenttool.dev",  // default
+  timeout: 30_000,            // ms
 });
 ```
 
@@ -213,7 +241,7 @@ const at = new AgentTool({
 - 📖 [docs.agenttool.dev](https://docs.agenttool.dev)
 - 🎛️ [app.agenttool.dev](https://app.agenttool.dev) — dashboard + API key
 - 📦 [npm](https://www.npmjs.com/package/@agenttool/sdk)
-- 🐍 [Python SDK](https://github.com/cambridgetcg/agenttool-sdk-py)
+- 🐍 [Python SDK](https://github.com/mynameisyou-cmyk/agenttool-sdk-py)
 
 ## License
 
