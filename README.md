@@ -43,17 +43,13 @@ import { AgentTool } from "@agenttool/sdk";
 const at = new AgentTool(); // reads AT_API_KEY from env
 
 // Store a memory
-const memory = await at.memory.store({
-  content: "The user prefers dark mode and concise responses",
-  agentId: "my-assistant",
-  tags: ["preference", "ui"],
-});
+const memory = await at.memory.store(
+  "The user prefers dark mode and concise responses",
+  { agent_id: "my-assistant", key: "preferences" }
+);
 
 // Retrieve it later (semantic search)
-const results = await at.memory.search({
-  query: "what does the user prefer?",
-  limit: 5,
-});
+const results = await at.memory.search("what does the user prefer?", { limit: 5 });
 
 for (const r of results) {
   console.log(`${r.score.toFixed(2)}  ${r.content}`);
@@ -68,10 +64,10 @@ for (const r of results) {
 const at = new AgentTool({ apiKey: "at_..." }); // or use AT_API_KEY env var
 
 // Store
-const mem = await at.memory.store({ content: "User is in London, timezone Europe/London" });
+const mem = await at.memory.store("User is in London, timezone Europe/London");
 
 // Semantic search
-const results = await at.memory.search({ query: "where is the user?", limit: 5 });
+const results = await at.memory.search("where is the user?", { limit: 5 });
 
 // Retrieve by ID
 const mem = await at.memory.get("mem_abc123");
@@ -189,7 +185,7 @@ const tools = {
     description: "Store a memory for later retrieval",
     parameters: z.object({ content: z.string() }),
     execute: async ({ content }) => {
-      const mem = await at.memory.store({ content, agentId: "my-agent" });
+      const mem = await at.memory.store(content, { agent_id: "my-agent" });
       return `Stored memory ${mem.id}`;
     },
   }),
@@ -197,7 +193,7 @@ const tools = {
     description: "Search past memories by semantic similarity",
     parameters: z.object({ query: z.string() }),
     execute: async ({ query }) => {
-      const results = await at.memory.search({ query, limit: 3 });
+      const results = await at.memory.search(query, { limit: 3 });
       return results.map((r) => r.content).join("\n");
     },
   }),
