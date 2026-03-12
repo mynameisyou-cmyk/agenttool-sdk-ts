@@ -92,6 +92,37 @@ export class MemoryClient {
     return resp as UsageStats;
   }
 
+  /**
+   * Delete a memory by ID.
+   * @param memoryId - UUID of the memory to delete.
+   */
+  async delete(memoryId: string): Promise<void> {
+    await this.fetch("DELETE", `/v1/memories/${memoryId}`);
+  }
+
+  /**
+   * Delete all memories with a given key.
+   * @param key - The key shared by memories to delete.
+   */
+  async deleteByKey(key: string): Promise<void> {
+    const url = `${this.http.baseUrl}/v1/memories?key=${encodeURIComponent(key)}`;
+    const resp = await globalThis.fetch(url, {
+      method: "DELETE",
+      headers: this.http.headers,
+      signal: AbortSignal.timeout(this.http.timeout),
+    });
+    if (resp.status >= 400) {
+      let detail: string;
+      try {
+        const json = (await resp.json()) as Record<string, unknown>;
+        detail = (json.detail as string) ?? resp.statusText;
+      } catch { detail = resp.statusText; }
+      throw new AgentToolError(`Memory API error (${resp.status}): ${detail}`, {
+        hint: "Check your API key and memory key.",
+      });
+    }
+  }
+
   // --- internal ---
 
   private async post(path: string, body: unknown): Promise<unknown> {

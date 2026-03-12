@@ -64,6 +64,23 @@ export interface ScrapeResult {
   [key: string]: unknown;
 }
 
+/** Result of document parsing. */
+export interface DocumentResult {
+  title: string;
+  content: string;
+  word_count: number;
+  content_type: string;
+  metadata: Record<string, unknown>;
+  duration_ms: number;
+}
+
+/** Options for document parsing. */
+export interface ParseDocumentOptions {
+  url?: string;
+  base64?: string;
+  content_type?: string;
+}
+
 /** Result of sandboxed code execution. */
 export interface ExecuteResult {
   stdout: string;
@@ -86,10 +103,45 @@ export interface Wallet {
   id: string;
   name: string;
   balance: number;
-  api_key: string;
+  currency: string;
+  frozen: boolean;
+  agentId?: string;
+  createdAt?: string;
 }
 
 /** Options for creating a wallet. */
 export interface CreateWalletOptions {
   name: string;
+  agentId?: string;
+  currency?: string;
+}
+
+/** A wallet spending policy. */
+export interface WalletPolicy {
+  maxPerTransaction?: number | null;
+  maxPerHour?: number | null;
+  maxPerDay?: number | null;
+  allowedRecipients?: string[] | null;
+  requiresApprovalAbove?: number | null;
+}
+
+/** An escrow object. */
+export interface Escrow {
+  id: string;
+  status: "pending" | "active" | "released" | "refunded" | "disputed";
+  amount: number;
+  description: string;
+  creatorWalletId: string;
+  workerWalletId?: string | null;
+  deadline?: string | null;
+  createdAt?: string;
+}
+
+/** Options for creating an escrow. */
+export interface CreateEscrowOptions {
+  creatorWalletId: string;
+  amount: number;
+  description: string;
+  workerWalletId?: string;
+  deadline?: string;
 }

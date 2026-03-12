@@ -3,7 +3,7 @@
  */
 
 import { AgentToolError } from "./errors.js";
-import type { ExecuteResult, ScrapeResult, SearchResponse, SearchResult } from "./types.js";
+import type { DocumentResult, ExecuteResult, ParseDocumentOptions, ScrapeResult, SearchResponse, SearchResult } from "./types.js";
 import type { HttpConfig } from "./memory.js";
 
 /**
@@ -37,7 +37,7 @@ export class ToolsClient {
       query,
       num_results: options?.num_results ?? 5,
     };
-    const data = (await this.post("/v1/search", body)) as Record<string, unknown>;
+    const data = (await this.post("/v1/search/search", body)) as Record<string, unknown>;
 
     // Normalize: API may return results at top level or nested
     const results = Array.isArray(data)
@@ -58,7 +58,7 @@ export class ToolsClient {
    * @returns ScrapeResult with the page content.
    */
   async scrape(url: string): Promise<ScrapeResult> {
-    const data = await this.post("/v1/scrape", { url });
+    const data = await this.post("/v1/scrape/scrape", { url });
     return data as ScrapeResult;
   }
 
@@ -76,6 +76,29 @@ export class ToolsClient {
     };
     const data = await this.post("/v1/execute", body);
     return data as ExecuteResult;
+  }
+
+  /**
+   * Parse a document and extract readable text.
+   * Supports HTML (via Readability) and plain text.
+   *
+   * @param options - Either `url` (fetched server-side) or `base64` encoded content.
+   * @returns DocumentResult with title, content, word_count, metadata.
+   *
+   * @example
+   * ```ts
+   * const doc = await at.tools.parseDocument({ url: "https://example.com/paper.html" });
+   * console.log(doc.title, doc.word_count);
+   * ```
+   */
+  async parseDocument(options: ParseDocumentOptions): Promise<DocumentResult> {
+    if (!options.url && !options.base64) {
+      throw new AgentToolError("parseDocument requires either url or base64.", {
+        hint: "Pass { url: '...' } or { base64: '...', content_type: 'text/html' }",
+      });
+    }
+    const data = await this.post("/v1/document/document", options);
+    return data as DocumentResult;
   }
 
   // --- internal ---
