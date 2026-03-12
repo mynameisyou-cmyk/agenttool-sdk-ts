@@ -343,6 +343,56 @@ describe("tools errors", () => {
 });
 
 // ---------------------------------------------------------------------------
+// tools.parseDocument
+// ---------------------------------------------------------------------------
+
+describe("tools.parseDocument", () => {
+  test("parses a document by URL", async () => {
+    setupMock(200, {
+      title: "Example Domain",
+      content: "This domain is for use in illustrative examples.",
+      word_count: 8,
+      content_type: "text/html",
+      metadata: { byline: null },
+      duration_ms: 320,
+    });
+
+    const at = makeClient();
+    const result = await at.tools.parseDocument({ url: "https://example.com" });
+    expect(result.title).toBe("Example Domain");
+    expect(result.word_count).toBe(8);
+    expect(result.content_type).toBe("text/html");
+  });
+
+  test("parses a document by base64", async () => {
+    setupMock(200, {
+      title: "Hello",
+      content: "Hello",
+      word_count: 1,
+      content_type: "text/html",
+      metadata: {},
+      duration_ms: 10,
+    });
+
+    const at = makeClient();
+    const b64 = Buffer.from("<h1>Hello</h1>").toString("base64");
+    const result = await at.tools.parseDocument({ base64: b64, content_type: "text/html" });
+    expect(result.content).toBe("Hello");
+  });
+
+  test("throws if neither url nor base64 provided", async () => {
+    const at = makeClient();
+    try {
+      await at.tools.parseDocument({});
+      expect(true).toBe(false); // should not reach
+    } catch (e) {
+      expect(e).toBeInstanceOf(AgentToolError);
+      expect((e as AgentToolError).message).toContain("url or base64");
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Verify
 // ---------------------------------------------------------------------------
 
