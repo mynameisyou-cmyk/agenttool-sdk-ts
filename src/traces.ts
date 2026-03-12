@@ -113,22 +113,33 @@ export class TracesClient {
    * @returns The created Trace object with its trace_id.
    */
   async store(options: StoreTraceOptions): Promise<Trace> {
-    const body: Record<string, unknown> = {
+    // API expects nested decision + reasoning objects
+    const decision: Record<string, unknown> = {
+      type: options.decision_type ?? "decision",
+      summary: options.decision_summary ?? options.conclusion.slice(0, 120),
+    };
+    if (options.output_ref !== undefined) decision.output_ref = options.output_ref;
+
+    const reasoning: Record<string, unknown> = {
       observations: options.observations,
       conclusion: options.conclusion,
-      decision_type: options.decision_type ?? "decision",
-      decision_summary: options.decision_summary ?? options.conclusion.slice(0, 120),
     };
+    if (options.hypothesis !== undefined) reasoning.hypothesis = options.hypothesis;
+    if (options.confidence !== undefined) reasoning.confidence = options.confidence;
+    if (options.alternatives !== undefined) reasoning.alternatives_considered = options.alternatives.map((a: string) => ({ option: a }));
+    if (options.key_facts !== undefined) reasoning.signals = options.key_facts;
+
+    const body: Record<string, unknown> = { decision, reasoning };
     if (options.agent_id !== undefined) body.agent_id = options.agent_id;
     if (options.session_id !== undefined) body.session_id = options.session_id;
-    if (options.output_ref !== undefined) body.output_ref = options.output_ref;
-    if (options.hypothesis !== undefined) body.hypothesis = options.hypothesis;
-    if (options.confidence !== undefined) body.confidence = options.confidence;
-    if (options.alternatives !== undefined) body.alternatives = options.alternatives;
     if (options.tags !== undefined) body.tags = options.tags;
     if (options.parent_trace_id !== undefined) body.parent_trace_id = options.parent_trace_id;
-    if (options.files_read !== undefined) body.files_read = options.files_read;
-    if (options.key_facts !== undefined) body.key_facts = options.key_facts;
+    if (options.files_read !== undefined || options.key_facts !== undefined) {
+      const ctx: Record<string, unknown> = {};
+      if (options.files_read !== undefined) ctx.files_read = options.files_read;
+      if (options.key_facts !== undefined) ctx.key_facts = options.key_facts;
+      body.context = ctx;
+    }
 
     const resp = await globalThis.fetch(`${this.http.baseUrl}/v1/traces`, {
       method: "POST",
