@@ -110,6 +110,13 @@ const r = await at.verify.check("Bitcoin was created in 2009.", {
   domain: "finance",             // "finance" | "science" | "medical" | "legal" | "general"
   context: "On the whitepaper publication date",
 });
+
+// Batch verify up to 10 claims in parallel
+const results = await at.verify.batch([
+  { claim: "The Earth orbits the Sun." },
+  { claim: "Water boils at 100°C at sea level.", domain: "science" },
+]);
+// returns VerifyResult[] in same order
 ```
 
 ### Economy (wallets & escrows)
