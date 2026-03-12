@@ -160,22 +160,26 @@ await at.economy.releaseEscrow(escrow.id);
 ```typescript
 // Store a reasoning trace
 const trace = await at.traces.store({
-  step: "web_search",
-  input: { query: "climate change solutions" },
-  output: { results: ["..."] },
+  observations: [
+    "User asked about climate solutions",
+    "Searched web: found 3 relevant papers",
+  ],
+  conclusion: "Renewable energy is the most actionable near-term solution",
+  decision_type: "decision",   // "decision" | "tool_call" | "plan" | "verification" | "other"
+  confidence: 0.87,
+  tags: ["climate", "research"],
+  agent_id: "research-agent",
 });
+console.log(trace.trace_id); // "tr_a1b2c3d4e5f6"
 
 // Semantic search across traces
-const results = await at.traces.search({
-  query: "decisions about climate data",
-  limit: 5,
-});
+const results = await at.traces.search("decisions about climate data", { limit: 5 });
 
 // Get a chain of reasoning steps
-const chain = await at.traces.chain("parent_trace_id");
+const chain = await at.traces.chain(trace.trace_id);
 
 // Delete
-await at.traces.delete(trace.id);
+await at.traces.delete(trace.trace_id);
 ```
 
 ## Integration example — LangChain / Vercel AI SDK
