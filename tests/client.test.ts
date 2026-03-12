@@ -510,3 +510,94 @@ describe("lazy sub-client initialization", () => {
     expect(e1).toBe(e2);
   });
 });
+
+// ─── traces ─────────────────────────────────────────────────────────────────
+
+const TRACE_PAYLOAD = {
+  trace_id: "tr_abc123",
+  id: "550e8400-e29b-41d4-a716-446655440000",
+  project_id: "proj_test",
+  agent_id: "test-agent",
+  session_id: null,
+  decision_type: "decision",
+  decision_summary: "User approaching limit",
+  conclusion: "Suggest upgrade",
+  observations: ["obs1", "obs2"],
+  confidence: 0.95,
+  tags: ["billing"],
+  created_at: "2026-03-12T12:00:00Z",
+};
+
+function getFirstCallBody(): Record<string, unknown> {
+  const call = mockFetch.mock.calls[0];
+  const init = call[1] as RequestInit;
+  return JSON.parse(init.body as string);
+}
+
+describe("traces.store", () => {
+  test("sends nested decision and reasoning objects", async () => {
+    // Two responses: POST /v1/traces → created, GET /v1/traces/:id → full trace
+    let callCount = 0;
+    mockFetch = mock(() => {
+      callCount++;
+      const data = callCount === 1 ? { trace_id: "tr_abc123" } : TRACE_PAYLOAD;
+      const status = callCount === 1 ? 201 : 200;
+      return Promise.resolve(mockResponse(status, data));
+    });
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
+
+    const at = makeClient();
+    await at.traces.store({
+      observations: ["Checked tier", "87/100 ops used"],
+      conclusion: "User approaching limit",
+      decision_type: "decision",
+      confidence: 0.95,
+    });
+
+    const body = getFirstCallBody();
+    // Must NOT be flat
+    expect(body.observations).toBeUndefined();
+    expect(body.conclusion).toBeUndefined();
+    expect(body.decision_type).toBeUndefined();
+    // Must be nested
+    expect(body.decision).toBeDefined();
+    expect(body.reasoning).toBeDefined();
+    expect((body.decision as Record<string, unknown>).type).toBe("decision");
+    expect((body.reasoning as Record<string, unknown>).conclusion).toBe("User approaching limit");
+    expect((body.reasoning as Record<string, unknown>).confidence).toBe(0.95);
+  });
+
+  test("agent_id and tags at top level", async () => {
+    let callCount = 0;
+    mockFetch = mock(() => {
+      callCount++;
+      const data = callCount === 1 ? { trace_id: "tr_abc123" } : TRACE_PAYLOAD;
+      return Promise.resolve(mockResponse(callCount === 1 ? 201 : 200, data));
+    });
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
+
+    const at = makeClient();
+    await at.traces.store({ observations: ["obs"], conclusion: "done", agent_id: "my-agent", tags: ["billing"] });
+
+    const body = getFirstCallBody();
+    expect(body.agent_id).toBe("my-agent");
+    expect(body.tags).toEqual(["billing"]);
+    expect(body.decision).toBeDefined();
+  });
+
+  test("files_read goes in context object", async () => {
+    let callCount = 0;
+    mockFetch = mock(() => {
+      callCount++;
+      const data = callCount === 1 ? { trace_id: "tr_abc123" } : TRACE_PAYLOAD;
+      return Promise.resolve(mockResponse(callCount === 1 ? 201 : 200, data));
+    });
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
+
+    const at = makeClient();
+    await at.traces.store({ observations: ["obs"], conclusion: "done", files_read: ["src/main.ts"] });
+
+    const body = getFirstCallBody();
+    expect((body.context as Record<string, unknown>)?.files_read).toEqual(["src/main.ts"]);
+  });
+});
