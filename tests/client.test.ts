@@ -418,19 +418,20 @@ describe("verify.check", () => {
     expect(body.claim).toBe("The Earth is round");
   });
 
-  test("passes sources option", async () => {
+  test("passes context and domain options", async () => {
     setupMock(200, {
-      verdict: "true",
-      confidence: 0.9,
+      verdict: "verified",
+      confidence: 0.95,
       sources: [],
       evidence: "",
       caveats: [],
     });
 
     const at = makeClient();
-    await at.verify.check("claim", { sources: ["https://source.com"] });
+    await at.verify.check("claim", { context: "some background", domain: "science" });
     const body = getLastCallBody();
-    expect(body.sources).toEqual(["https://source.com"]);
+    expect(body.context).toBe("some background");
+    expect(body.domain).toBe("science");
   });
 });
 
