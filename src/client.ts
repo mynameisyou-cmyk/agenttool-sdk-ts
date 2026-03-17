@@ -4,6 +4,7 @@
 
 import { AgentToolError } from "./errors.js";
 import { EconomyClient } from "./economy.js";
+import { IdentityClient } from "./identity.js";
 import { MemoryClient, type HttpConfig } from "./memory.js";
 import { ToolsClient } from "./tools.js";
 import { TracesClient } from "./traces.js";
@@ -34,6 +35,7 @@ export class AgentTool {
   private _verify: VerifyClient | undefined;
   private _economy: EconomyClient | undefined;
   private _traces: TracesClient | undefined;
+  private _identity: IdentityClient | undefined;
 
   /**
    * Create a new AgentTool client.
@@ -92,6 +94,12 @@ export class AgentTool {
   get traces(): TracesClient {
     this._traces ??= new TracesClient(this.http);
     return this._traces;
+  }
+
+  /** Access the Identity (DIDs, attestations, trust) API. */
+  get identity(): IdentityClient {
+    this._identity ??= new IdentityClient(this.http);
+    return this._identity;
   }
 
   toString(): string {

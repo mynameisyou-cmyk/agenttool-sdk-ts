@@ -1,5 +1,5 @@
 /**
- * AgentTool SDK — memory and tools for AI agents.
+ * AgentTool SDK — memory, tools, verify, economy, traces, and identity for AI agents.
  *
  * @example
  * ```ts
@@ -7,12 +7,25 @@
  *
  * const at = new AgentTool();
  * await at.memory.store("just a string");
+ * const { identity, private_key } = await at.identity.register("my-agent");
  * ```
  */
 
 export { AgentTool } from "./client.js";
 export { AgentToolError } from "./errors.js";
 export type { Trace, StoreTraceOptions, SearchTracesOptions, TraceSearchResult, TraceChain } from "./traces.js";
+export type {
+  Attestation,
+  AgentToken,
+  AttestOptions,
+  DiscoverOptions,
+  Identity,
+  IdentityKey,
+  IssueTokenOptions,
+  RegisterOptions,
+  TokenVerifyResult,
+  UpdateOptions,
+} from "./identity.js";
 export type {
   CreateEscrowOptions,
   CreateWalletOptions,
