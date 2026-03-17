@@ -8,6 +8,7 @@ import { IdentityClient } from "./identity.js";
 import { MemoryClient, type HttpConfig } from "./memory.js";
 import { ToolsClient } from "./tools.js";
 import { TracesClient } from "./traces.js";
+import { VaultClient } from "./vault.js";
 import { VerifyClient } from "./verify.js";
 
 /**
@@ -36,6 +37,7 @@ export class AgentTool {
   private _economy: EconomyClient | undefined;
   private _traces: TracesClient | undefined;
   private _identity: IdentityClient | undefined;
+  private _vault: VaultClient | undefined;
 
   /**
    * Create a new AgentTool client.
@@ -100,6 +102,12 @@ export class AgentTool {
   get identity(): IdentityClient {
     this._identity ??= new IdentityClient(this.http);
     return this._identity;
+  }
+
+  /** Access the Vault (encrypted secrets manager) API. */
+  get vault(): VaultClient {
+    this._vault ??= new VaultClient(this.http);
+    return this._vault;
   }
 
   toString(): string {

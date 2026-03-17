@@ -27,6 +27,17 @@ export type {
   UpdateOptions,
 } from "./identity.js";
 export type {
+  BulkResult,
+  GetOptions,
+  ListOptions,
+  PutOptions,
+  SecretMeta,
+  SecretWithValue,
+  VaultAuditEvent,
+  VaultPolicy,
+  VaultVersion,
+} from "./vault.js";
+export type {
   CreateEscrowOptions,
   CreateWalletOptions,
   DocumentResult,
