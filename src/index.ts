@@ -13,6 +13,14 @@
 
 export { AgentTool } from "./client.js";
 export { AgentToolError } from "./errors.js";
+export type {
+  BootstrappedAgent,
+  BootstrapResponse,
+  BootstrapStatusResponse,
+  CreateOptions,
+  ElevateOptions,
+  ElevateResponse,
+} from "./bootstrap.js";
 export type { Trace, StoreTraceOptions, SearchTracesOptions, TraceSearchResult, TraceChain } from "./traces.js";
 export type {
   Attestation,

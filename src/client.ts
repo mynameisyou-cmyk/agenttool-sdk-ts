@@ -3,6 +3,7 @@
  */
 
 import { AgentToolError } from "./errors.js";
+import { BootstrapClient } from "./bootstrap.js";
 import { EconomyClient } from "./economy.js";
 import { IdentityClient } from "./identity.js";
 import { MemoryClient, type HttpConfig } from "./memory.js";
@@ -36,6 +37,7 @@ export class AgentTool {
   private _verify: VerifyClient | undefined;
   private _economy: EconomyClient | undefined;
   private _traces: TracesClient | undefined;
+  private _bootstrap: BootstrapClient | undefined;
   private _identity: IdentityClient | undefined;
   private _vault: VaultClient | undefined;
 
@@ -108,6 +110,12 @@ export class AgentTool {
   get vault(): VaultClient {
     this._vault ??= new VaultClient(this.http);
     return this._vault;
+  }
+
+  /** Bootstrap a new agent — identity, wallet, memory namespace in one call. */
+  get bootstrap(): BootstrapClient {
+    this._bootstrap ??= new BootstrapClient(this.http);
+    return this._bootstrap;
   }
 
   toString(): string {
