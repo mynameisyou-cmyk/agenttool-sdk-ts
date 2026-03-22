@@ -9,6 +9,7 @@ import { IdentityClient } from "./identity.js";
 import { MemoryClient, type HttpConfig } from "./memory.js";
 import { ToolsClient } from "./tools.js";
 import { TracesClient } from "./traces.js";
+import { PulseClient } from "./pulse.js";
 import { VaultClient } from "./vault.js";
 import { VerifyClient } from "./verify.js";
 
@@ -40,6 +41,7 @@ export class AgentTool {
   private _bootstrap: BootstrapClient | undefined;
   private _identity: IdentityClient | undefined;
   private _vault: VaultClient | undefined;
+  private _pulse: PulseClient | undefined;
 
   /**
    * Create a new AgentTool client.
@@ -110,6 +112,12 @@ export class AgentTool {
   get vault(): VaultClient {
     this._vault ??= new VaultClient(this.http);
     return this._vault;
+  }
+
+  /** Access the Pulse (agent presence & liveness) API. */
+  get pulse(): PulseClient {
+    this._pulse ??= new PulseClient(this.http);
+    return this._pulse;
   }
 
   /** Bootstrap a new agent — identity, wallet, memory namespace in one call. */

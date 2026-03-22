@@ -46,6 +46,12 @@ export type {
   VaultVersion,
 } from "./vault.js";
 export type {
+  AgentState,
+  HeartbeatOptions,
+  HeartbeatResult,
+  PulseStatus,
+} from "./pulse.js";
+export type {
   CreateEscrowOptions,
   CreateWalletOptions,
   DocumentResult,
